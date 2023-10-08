@@ -1,0 +1,15 @@
+SLASH_CLOSE=6
+S=11
+EQUALS=7
+STRING=8
+TEXT=4
+CLOSE=5
+EntityRef=3
+COMMENT=2
+OPEN=1
+SlashName=9
+Name=10
+'>'=5
+'='=7
+'<'=1
+'/>'=6
