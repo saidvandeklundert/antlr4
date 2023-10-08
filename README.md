@@ -13,6 +13,9 @@ java org.antlr.v4.Tool
 
 ## ANTLR use:
 ```
+# put the following aliases in vi ~/.bash_aliases
+# then source it using the following
+# . ~/.bashrc
 # run antlr as cli
 alias antlr4='java -jar /usr/local/lib/antlr-4.0-complete.jar'
 antlr4 xxxx.g4
