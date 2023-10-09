@@ -8,6 +8,21 @@ ANTLR generates a function for each rule in your grammar. Writing grammar is lik
 Rules starting with a lowercase letter comprise the parser rules.
 Rules startig with an uppercase letter comprise the lexical (token) rules.
 
+### Core syntax
+
+```
+x                       Match token, rule reference or subrule x
+x y ... z               Match a sequence of rule elements.
+(... | ... | ...)       Subrule with multiple alternatives.
+x?                      Match x or skip it.
+x*                      Match x zero or more times.
+x+                      Match x one or more times.
+r : ... ;               Define rule r.
+r : ... | ... | ... ;   Define rule r with multiple alternatives.
+```
+
+### Syntax summary
+
 Alternatives in a rule are separated with the `|` operator.
 
 Using parentheses, we can group symbols into subrules, e.g. `( '*'|'\')` will match a multiplication symbol or a division symbol.
@@ -22,17 +37,28 @@ Using parentheses, we can group symbols into subrules, e.g. `( '*'|'\')` will ma
 
 `INT : [0-9]+ ;`: token definition for one or more digits
 
+`STRING : '"' .*? '"' ;` Defines a string, matches anything in "..."
+
 Fragments are reusable parts of lexer rules which cannot match on their own - they need to be referenced from a lexer rule. Examples:
 `fragment DIGIT: [0-9];`: all possible digits
 `fragment F_Letter: [A-Za-z] ;` : all possible upper and lowercase letters
 
+In the following, DIGIT is a helper rule that is prefixed by `fragment`. This means that the rule can only be used by other lexical rules and not on it's own:
+```g4
+FLOAT: DIGIT+ '.' DIGIT*        // match 1. 39. 3.14159 etc...
+    |           '.' DIGIT+      // match .1 .14159
+    ;
+
+fragment
+DIGIT   :   [0-9] ;             // match single digit
+```
 
 `field : INT | STRING ;`: a field that will be an integer or a string
 `('=' expr)?`: optional expression
 `type: 'float' | 'int' | 'void'`: laying out a user-defined type
 
 This or that or the other thing:
-```
+```g4
 stmt: node_stmt
     | edge_stmt
     | attr_stmt
@@ -40,10 +66,22 @@ stmt: node_stmt
     | subgraph
     ;
 ```
-
+Operators are evaluated left to right, so multiplication will precede addition in the next example:
+```g4
+expr : expr '*' expr    // match subexpressions joined with '*' operator
+    | expr '+' expr     // match subexpressions joined with '+' operator
+    | INT               // matches simple integer atom
+;
+```
 
 `vector : '[' INT+ ']' ;` : Token dependancy. This will allow `[1]`, `[1 2]`, `[1 2 3]`, etc.
 
+To parse something with right-associativity:
+```g4
+expr : expr '^'<assoc=right> expr   // ^ operator is right associative
+    | INT
+;
+```
 
 CSV parser example:
 ```g4
@@ -56,6 +94,27 @@ Match statements in a programming language:
 ```g4
 stats : (stat ';')* ; // match zero or more ';'-terminated statements
 ```
+
+Tokens defined first have a higher precedence than the ones below it. And in case rule have overlapping tokens, the rule that matches the most characters will take precedence (greedy match):
+```g4
+grammar KeywordTest;
+enumDef : 'enum' '{' ... '}' ;
+...
+FOR : 'for' ;      
+...
+ID : [a-zA-Z]+ ; // does NOT match 'enum' or 'for'
+```
+
+
+The following is the same:
+```g4
+call : ID '(' exprList ')' ;
+// same as:
+call : ID LP exprList RP ;
+LP: '(' ;
+RP: ')' ;
+```
+
 
 ## Grammar
 
@@ -70,6 +129,8 @@ To implement these patterns, we really only need grammar rules comprised of alte
 optional:                           `?`
 zero-or-more:                       `*`
 one-or-more:                        `+`
+
+
 ## ANTLR install:
 
 ```
@@ -81,6 +142,7 @@ java org.antlr.v4.Tool
 ```
 
 ## ANTLR use:
+
 ```
 # put the following aliases in vi ~/.bash_aliases
 # then source it using the following
@@ -106,3 +168,21 @@ grun ArrayInit init -tree
 
 Python grammar:
 https://docs.python.org/3/reference/grammar.html
+
+https://github.com/antlr/antlr4/blob/master/doc/getting-started.md
+https://github.com/antlr/antlr4/blob/master/doc/wildcard.md
+
+
+## Lazy
+
+```
+alias antlr4='java -jar /usr/local/lib/antlr-4.0-complete.jar'
+export CLASSPATH=".:/usr/local/lib/antlr-4.0-complete.jar:$CLASSPATH"
+alias grun='java org.antlr.v4.runtime.misc.TestRig'
+antlr4 xxx.g4
+javac .*.java
+grun XXX
+
+grun CSV file -tokens data.csv
+grun CSV file -tree data.csv
+```
